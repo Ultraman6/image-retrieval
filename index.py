@@ -1,42 +1,49 @@
 # -*- coding: utf-8 -*-
-
-import h5py
+import pickle
 import argparse
-import numpy as np
-from service.vggnet import VGGNet
+from backbone.dinov2 import DinoV2
+from backbone.vgg import VGGNet
 import os
 import sys
 from os.path import dirname
+from PIL import Image
+from milvus import MilvusRetrieval
 BASE_DIR = dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 
 def get_imlist(path):
     return [os.path.join(path,f) for f in os.listdir(path) if f.endswith('.jpg')]
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--model_size",
+                        type=str, default="base",
+                        choices=["small", "base", "large", "largest"],
+                        help="DinoV2 model type",)
+    parser.add_argument("--model_path",
+        type=str, default=None,
+        help="path to dinov2 model, useful when github is unavailable",
+    )
     parser.add_argument("--train_data", type=str, default=os.path.join(BASE_DIR, 'data', 'train'), help="train data path.")
-    parser.add_argument("--index_file", type=str, default=os.path.join(BASE_DIR, 'index', 'train.h5'), help="index file path.")
-    args = vars(parser.parse_args())
-    img_list = get_imlist(args["train_data"])
+    parser.add_argument("--db_name", type=str, default='image_retrieval', help="database name.")
+    args = parser.parse_args()
+    img_list = get_imlist(args.train_data)
     print("--------------------------------------------------")
     print("         feature extraction starts")
     print("--------------------------------------------------")
-    feats = []
-    names = []
-    model = VGGNet()
+    items = []
+    model = DinoV2(args.model_size, args.model_path)
+    # model = VGGNet()
     for i, img_path in enumerate(img_list):
-        norm_feat = model.vgg_extract_feat(img_path)
-        img_name = os.path.split(img_path)[1]
-        feats.append(norm_feat)
-        names.append(img_name)
+        img = Image.open(img_path).convert('RGB')
+        norm_feat = model.extract_single_image_feature(img)
+        print(len(norm_feat))
+        img_name = str(os.path.basename(img_path))
+        items.append({'vector': norm_feat, 'meta': img_name})
         print("extracting feature from image No. %d , %d images in total" %((i+1), len(img_list)))
-    feats = np.array(feats)
     print("--------------------------------------------------")
     print("         writing feature extraction results")
     print("--------------------------------------------------")
-    h5f = h5py.File(args["index_file"], 'w')
-    h5f.create_dataset('dataset_1', data = feats)
-    h5f.create_dataset('dataset_2', data = np.string_(names))
-    h5f.close()
+    # pickle.dump(key_value, open(args.index_file, 'wb'))
+    re = MilvusRetrieval(args.db_name, init=True, dim=model.dim)
+    re.insert(items)
