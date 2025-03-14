@@ -1,14 +1,8 @@
-import os
-import sys
 import torch
 import numpy as np
 import cv2
 from PIL import Image
-from torch.hub import download_url_to_file, get_dir
-from urllib.parse import urlparse
 
-
-# Source https://github.com/advimman/lama
 def get_image(image):
     if isinstance(image, Image.Image):
         img = np.array(image)

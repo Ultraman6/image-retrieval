@@ -8,12 +8,12 @@ class Args:
 
 class PPOCRv4:
 
-    def __init__(self, det_model_path, rec_model_path, cls_model_path, drop_score=0.5,
+    def __init__(self, det_model_path, rec_model_path, cls_model_path, device, drop_score=0.5,
                  det_algorithm='DB', rec_algorithm='SVTR_LCNet', use_angle_cls=False, lang='ch') -> None:
 
-        self.det_net = det_model_path
-        self.rec_net = rec_model_path
-        self.cls_net = cls_model_path
+        self.det_net = self.load_model(det_model_path, device)
+        self.rec_net = self.load_model(rec_model_path, device)
+        self.cls_net = self.load_model(cls_model_path, device)
         self.det_algorithm = det_algorithm
         self.rec_algorithm = rec_algorithm
         self.drop_score = drop_score
@@ -113,3 +113,29 @@ class PPOCRv4:
             sr_batch_num=1,
         )
         return args
+
+    def load_model(self, model_path, device):
+
+        model_task = os.path.splitext(
+            model_path
+        )[0]
+        if not model_path or not os.path.isfile(model_path):
+            raise FileNotFoundError(
+                f"Could not download or initialize {model_task} model."
+            )
+
+        self.sess_opts = ort.SessionOptions()
+        if "OMP_NUM_THREADS" in os.environ:
+            self.sess_opts.inter_op_num_threads = int(
+                os.environ["OMP_NUM_THREADS"]
+            )
+        self.providers = ["CPUExecutionProvider"]
+
+        if device == "gpu":
+            self.providers = ["CUDAExecutionProvider"]
+        net = ort.InferenceSession(
+            model_path,
+            providers=self.providers,
+            sess_options=self.sess_opts,
+        )
+        return net

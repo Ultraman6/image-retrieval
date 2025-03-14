@@ -1,11 +1,11 @@
 import cv2
 import numpy as np
 from work_flow.base.build_onnx_engine import OnnxBaseModel
-from work_flow.utils.yolov6_face import letterbox, xywh2xyxy, warp_im, coord5point1, coord5point2, imgSize1, imgSize2
+from work_flow.utils.yolov6_face import letterbox, xywh2xyxy, warp_im, coord5point1, coord5point2, imgSize1, imgSize2, numpy_nms
 
 class YOLOv6Face:
 
-    def __init__(self, model_path, device='gpu', scale='112x112', conf_thres=0.5, iou_thres=0.5, agnostic=False, input_shape=(640,640)) -> None:
+    def __init__(self, model_path, device='gpu', scale='112x112', conf_thres=0.45, iou_thres=0.25, agnostic=False, input_shape=(320,320)) -> None:
         self.scale = scale
         self.conf_thres = conf_thres
         self.iou_thres = iou_thres
@@ -207,7 +207,7 @@ class YOLOv6Face:
 
             if self.scale is not None:
                 crop_img = self.crop_transform(image.copy(), xyxy, lmdks)
-                faces.append({'crop_img': crop_img, 'score': score})
+                faces.append({'img': crop_img, 'score': score})
 
         return faces
 

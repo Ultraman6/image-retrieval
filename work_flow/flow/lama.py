@@ -1,4 +1,3 @@
-import onnxruntime
 import torch
 from PIL import Image
 from work_flow.utils.lama import prepare_img_and_mask
@@ -24,7 +23,7 @@ class Lama:
                 sess_opts.inter_op_num_threads = int(
                     os.environ["OMP_NUM_THREADS"]
                 )
-            sess_options = onnxruntime.SessionOptions()
+            sess_options = ort.SessionOptions()
             self.use_onnx = True
             self.ort_session = ort.InferenceSession(model_path, providers=providers, sess_options=sess_options)
         elif base.split('.')[1] == "pt":

@@ -20,7 +20,7 @@ class PPOCRv4LAMA:
     # 用于放大mask大小，防止自动检测的文本框过小，inpaint阶段出现文字边，有残留
 
     def __init__(self, args) -> None:
-        self.sub_detector = PPOCRv4(args.det_model_path, args.rec_model_path, args.cls_model_path)
+        self.sub_detector = PPOCRv4(args.det_model_path, args.rec_model_path, args.cls_model_path, args.device)
         self.lama_inpaint = Lama(args.lama_model_path, args.device)
 
     def format_letter(self, letters):
@@ -149,7 +149,6 @@ class PPOCRv4LAMA:
         logging.info('[Processing] Start removing subtitles...')
         if len(sub_list):
             mask = self.create_mask(image.shape[0:2], sub_list[1])
-            results = self.lama_inpaint.predict_shapes(image, mask)
-            image = results.image
+            image = self.lama_inpaint.predict_shapes(image, mask)
         logging.info('[Finished] Finished removing subtitles...')
         return image
